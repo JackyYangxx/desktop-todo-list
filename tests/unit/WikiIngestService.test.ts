@@ -73,14 +73,14 @@ describe('WikiIngestService.twoStepCoT', () => {
       summary: '...', entities: [{ name: 'Git', type: 'tool', isNew: true }], concepts: [],
       keyPoints: ['x'], linksTo: [], contradicts: [],
     }));
-    const result = await svc.step1('source content', '# role', '## overview');
+    const result = await svc.step1('source content');
     expect(result.entities[0].name).toBe('Git');
     expect(mockLlm.chat).toHaveBeenCalledTimes(1);
   });
 
   test('Step 1 throws on invalid LLM JSON (zod parse failure)', async () => {
     mockLlm.chat.mockResolvedValueOnce('not json {{{');
-    await expect(svc.step1('content', '', '')).rejects.toThrow();
+    await expect(svc.step1('content')).rejects.toThrow();
   });
 
   test('Step 2 receives Step 1 output and returns wiki page contents', async () => {
@@ -99,7 +99,7 @@ describe('WikiIngestService.twoStepCoT', () => {
     // F5: 30s backoff is the spec; use fake timers to avoid waiting in tests.
     vi.useFakeTimers();
     try {
-      const promise = svc.step1('content', '', '');
+      const promise = svc.step1('content');
       // advance past the 30s backoff window
       await vi.advanceTimersByTimeAsync(30_000);
       await promise;

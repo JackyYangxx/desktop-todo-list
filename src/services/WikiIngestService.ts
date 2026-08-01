@@ -55,10 +55,10 @@ export class WikiIngestService {
     await fs.promises.rename(tmpPath, filePath);
   }
 
-  async step1(sourceContent: string, roleContent: string, overviewContent: string, jobId = 0): Promise<z.infer<typeof Step1Output>> {
+  async step1(sourceContent: string, jobId = 0): Promise<z.infer<typeof Step1Output>> {
     return this.withRetry(async () => {
       const response = await this.deps.llm.chat({
-        systemPrompt: `${roleContent}\n\n${overviewContent}`,
+        systemPrompt: '',
         userPrompt: `分析以下源材料:\n\n${sourceContent}`,
         kbContext: false,
       });
@@ -105,19 +105,15 @@ export class WikiIngestService {
     this.workerRunning = true;
     this.workerShouldStop = false;
     const tick = async () => {
-      if (this.workerShouldStop) {
-        this.workerRunning = false;
-        return;
-      }
       try {
         await this.processNext();
       } catch (err) {
         log.error('[WikiIngest] worker tick error:', err);
       }
-      if (!this.workerShouldStop) {
-        this.workerTimer = setTimeout(tick, pollIntervalMs);
-      } else {
+      if (this.workerShouldStop) {
         this.workerRunning = false;
+      } else {
+        this.workerTimer = setTimeout(tick, pollIntervalMs);
       }
     };
     tick();
@@ -136,8 +132,8 @@ export class WikiIngestService {
     if (!job) return;
     try {
       const sourceContent = fs.readFileSync(job.file_path, 'utf-8');
-      // Role/overview injection happens via LLMService.chat()'s kbContext path.
-      const step1Data = await this.step1(sourceContent, '', '', job.id);
+      // No role/wiki context during ingest: raw source analysis stays unpolluted.
+      const step1Data = await this.step1(sourceContent, job.id);
       const step2Data = await this.step2(sourceContent, step1Data, job.id);
       // LLM is untrusted: reject absolute paths so path.join can't be coerced
       // into writing outside wikiDir (e.g. /etc/passwd). Relative paths only.

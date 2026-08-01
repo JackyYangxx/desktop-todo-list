@@ -56,8 +56,8 @@ export class WikiIndexService {
     return [...scores.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, topK)
-      .map(([p]) => this.pageIndex.get(p)!)
-      .filter(Boolean);
+      .map(([p]) => this.pageIndex.get(p))
+      .filter((p): p is WikiPage => Boolean(p));
   }
 
   // F3: detect wiki dir change, drop stale pages, rebuild

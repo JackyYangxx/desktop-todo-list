@@ -39,7 +39,9 @@ export class LLMService {
     let systemPrompt = opts.systemPrompt;
     if (opts.kbContext !== false && this.settings?.get('kb_enabled') === 'true') {
       const ctx = await this.buildKbContext(opts.userPrompt);
-      systemPrompt = `[角色]\n${ctx.role || '(未配置 role.md)'}\n\n[相关知识]\n${ctx.wikiHits.map(h => `[${h.path}]\n${h.content}`).join('\n---\n') || '(无)'}\n\n[任务]\n${opts.systemPrompt}`;
+      const role = ctx.role || '(未配置 role.md)';
+      const knowledge = ctx.wikiHits.map(h => `[${h.path}]\n${h.content}`).join('\n---\n') || '(无)';
+      systemPrompt = `[角色]\n${role}\n\n[相关知识]\n${knowledge}\n\n[任务]\n${opts.systemPrompt}`;
     }
 
     const response = await this.client.chat.completions.create({
